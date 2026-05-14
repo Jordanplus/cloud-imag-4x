@@ -1,5 +1,7 @@
 # iPad 影像 4x 放大工具
 
+[![Live site](https://img.shields.io/badge/live-ipad--upscale.pages.dev-0ea5e9?logo=cloudflare&logoColor=white)](https://ipad-upscale.pages.dev)
+
 純 web PWA，從 iPad / iPhone / Android / 桌面瀏覽器都能用。透過 Cloudflare Pages 部署、Replicate 跑 super-resolution 模型。
 
 ## 功能

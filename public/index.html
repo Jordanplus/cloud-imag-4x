@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="4x 放大">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png">
+  <title>影像 4x 放大</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f8fafc;
+      --fg: #0f172a;
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --primary: #2563eb;
+      --primary-fg: #ffffff;
+      --muted: #64748b;
+      --danger: #dc2626;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f172a;
+        --fg: #f1f5f9;
+        --card: #1e293b;
+        --border: #334155;
+        --primary: #3b82f6;
+        --primary-fg: #ffffff;
+        --muted: #94a3b8;
+        --danger: #f87171;
+      }
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+      min-height: 100vh;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .wrap {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+    h1 {
+      font-size: 22px;
+      margin: 8px 0 16px;
+      font-weight: 600;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    label.row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 0;
+      cursor: pointer;
+      font-size: 16px;
+      user-select: none;
+    }
+    label.row input[type="checkbox"],
+    label.row input[type="radio"] {
+      width: 22px;
+      height: 22px;
+      accent-color: var(--primary);
+    }
+    .hint {
+      color: var(--muted);
+      font-size: 13px;
+      margin-left: 32px;
+      margin-top: -4px;
+      margin-bottom: 6px;
+    }
+    button, .btn {
+      display: block;
+      width: 100%;
+      padding: 14px 16px;
+      font-size: 17px;
+      font-weight: 600;
+      border-radius: 12px;
+      border: none;
+      background: var(--primary);
+      color: var(--primary-fg);
+      cursor: pointer;
+      touch-action: manipulation;
+      text-align: center;
+      text-decoration: none;
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    button.ghost {
+      background: transparent;
+      color: var(--primary);
+      border: 1px solid var(--primary);
+    }
+    input[type="password"], input[type="text"] {
+      width: 100%;
+      padding: 12px 14px;
+      font-size: 17px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--card);
+      color: var(--fg);
+      margin-bottom: 12px;
+    }
+    .preview {
+      width: 100%;
+      max-height: 320px;
+      object-fit: contain;
+      border-radius: 10px;
+      background: var(--bg);
+      display: block;
+      margin: 8px 0;
+    }
+    .result-img {
+      width: 100%;
+      max-height: 70vh;
+      object-fit: contain;
+      border-radius: 10px;
+      background: var(--bg);
+      display: block;
+      margin: 8px 0;
+    }
+    .status {
+      padding: 10px 14px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 15px;
+      margin: 12px 0;
+      text-align: center;
+    }
+    .status.err { color: var(--danger); border-color: var(--danger); }
+    .file-pick {
+      display: block;
+      padding: 24px;
+      text-align: center;
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 16px;
+    }
+    .file-pick input { display: none; }
+    .save-tip {
+      color: var(--muted);
+      font-size: 13px;
+      margin: 8px 0;
+    }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>影像 4x 放大</h1>
+
+    <section id="auth" class="card">
+      <input type="password" id="pwd" placeholder="存取密碼" autocomplete="current-password">
+      <button id="enter">進入</button>
+    </section>
+
+    <section id="app" hidden>
+      <div class="card">
+        <label class="file-pick" id="filePick">
+          <input type="file" id="picker" accept="image/*">
+          <span id="pickText">點此選擇照片（或拍照）</span>
+        </label>
+        <img id="preview" class="preview" hidden>
+      </div>
+
+      <div class="card" id="optionsCard" hidden>
+        <label class="row">
+          <input type="checkbox" id="denoise">
+          <span>先降噪</span>
+        </label>
+        <div class="hint">髒照片、舊掃描、高 ISO 時開。多 1 次 API call、多一倍時間。</div>
+
+        <label class="row">
+          <input type="radio" name="mode" id="modeStd" value="standard" checked>
+          <span>標準模式</span>
+        </label>
+        <label class="row">
+          <input type="radio" name="mode" id="modeAnime" value="anime">
+          <span>動漫模式（插畫、截圖）</span>
+        </label>
+
+        <label class="row" id="faceRow">
+          <input type="checkbox" id="faceEnhance">
+          <span>強化人臉（GFPGAN）</span>
+        </label>
+        <div class="hint" id="faceHint">有人臉時開。動漫模式不適用。</div>
+
+        <div style="color: var(--muted); font-size: 13px; margin: 4px 0 10px;">過大照片會自動縮到 1024 px 長邊（Replicate GPU 上限）。</div>
+        <button id="start">開始放大 4x</button>
+      </div>
+
+      <div class="status" id="status" hidden></div>
+
+      <div class="card" id="resultCard" hidden>
+        <img id="resultImg" class="result-img">
+        <p class="save-tip">📌 iPad / iPhone：長按結果圖 → 「加入照片」存到相簿；或下方按鈕下載 PNG。</p>
+        <a id="downloadBtn" class="btn" download="upscaled.png">下載 PNG</a>
+        <div style="height: 10px"></div>
+        <button id="resetBtn" class="ghost">處理下一張</button>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const PWD_KEY = 'upscale_pwd';
+
+    // ---------- Auth gate ----------
+    function showApp() { $('auth').hidden = true; $('app').hidden = false; }
+    function getPwd() { return localStorage.getItem(PWD_KEY) || ''; }
+
+    if (getPwd()) showApp();
+
+    $('enter').addEventListener('click', () => {
+      const v = $('pwd').value.trim();
+      if (!v) return;
+      localStorage.setItem(PWD_KEY, v);
+      showApp();
+    });
+    $('pwd').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('enter').click(); });
+
+    // ---------- File pick & preview ----------
+    let pickedFile = null;
+    $('picker').addEventListener('change', (e) => {
+      const f = e.target.files[0];
+      if (!f) return;
+      pickedFile = f;
+      const url = URL.createObjectURL(f);
+      $('preview').src = url;
+      $('preview').hidden = false;
+      $('pickText').textContent = f.name + ' （點此換一張）';
+      $('optionsCard').hidden = false;
+      $('resultCard').hidden = true;
+      $('status').hidden = true;
+    });
+
+    // ---------- Mode-dependent UI ----------
+    function updateModeUI() {
+      const anime = $('modeAnime').checked;
+      $('faceRow').style.display = anime ? 'none' : 'flex';
+      $('faceHint').style.display = anime ? 'none' : 'block';
+      if (anime) $('faceEnhance').checked = false;
+    }
+    $('modeStd').addEventListener('change', updateModeUI);
+    $('modeAnime').addEventListener('change', updateModeUI);
+    updateModeUI();
+
+    // ---------- API call helpers ----------
+    function setStatus(text, isErr = false) {
+      const el = $('status');
+      el.textContent = text;
+      el.hidden = !text;
+      el.classList.toggle('err', isErr);
+    }
+
+    // Replicate GPU 記憶體上限 ≈ 1MP；超過會 OOM。
+    // 統一在前端縮到長邊 ≤ MAX_INPUT_DIM，保留比例。
+    const MAX_INPUT_DIM = 1024;
+
+    async function fileToDataUrl(file) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        const objUrl = URL.createObjectURL(file);
+        img.onload = () => {
+          const longest = Math.max(img.width, img.height);
+          const ratio = longest > MAX_INPUT_DIM ? MAX_INPUT_DIM / longest : 1;
+          const w = Math.round(img.width * ratio);
+          const h = Math.round(img.height * ratio);
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          URL.revokeObjectURL(objUrl);
+          resolve(canvas.toDataURL('image/jpeg', 0.92));
+        };
+        img.onerror = (e) => { URL.revokeObjectURL(objUrl); reject(e); };
+        img.src = objUrl;
+      });
+    }
+
+    async function callApi(path, opts = {}) {
+      const headers = Object.assign({}, opts.headers || {}, {
+        'Authorization': 'Bearer ' + getPwd(),
+      });
+      if (opts.body && typeof opts.body !== 'string') {
+        headers['Content-Type'] = 'application/json';
+        opts.body = JSON.stringify(opts.body);
+      }
+      const r = await fetch(path, { ...opts, headers });
+      if (r.status === 401) {
+        localStorage.removeItem(PWD_KEY);
+        location.reload();
+        throw new Error('Unauthorized');
+      }
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.error || ('HTTP ' + r.status));
+      return data;
+    }
+
+    function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+    // Build → POST → poll. Returns final output URL (string).
+    async function runStep(modelKey, input, label) {
+      setStatus(label + ' — 建立任務…');
+      const { id } = await callApi('/api/predict', {
+        method: 'POST',
+        body: { model: modelKey, input },
+      });
+      let cold = true;
+      for (let i = 0; i < 300; i++) {
+        await sleep(2000);
+        const data = await callApi('/api/predict?id=' + encodeURIComponent(id));
+        if (data.status === 'succeeded') {
+          let out = data.output;
+          if (modelKey === 'denoise' && out && typeof out === 'object') {
+            out = out.denoised_image;
+          } else if (Array.isArray(out)) {
+            out = out[0];
+          }
+          if (!out) throw new Error('成功但沒有輸出');
+          return out;
+        }
+        if (data.status === 'failed' || data.status === 'canceled') {
+          throw new Error(data.error || (modelKey + ' 處理失敗'));
+        }
+        if (cold && data.status === 'starting') {
+          setStatus(label + ' — 模型冷啟動中（可能 30-60 秒）…');
+        } else if (data.status === 'processing') {
+          cold = false;
+          setStatus(label + ' — 處理中…');
+        } else {
+          setStatus(label + ' — ' + data.status + '…');
+        }
+      }
+      throw new Error('Timeout (10 分鐘)');
+    }
+
+    // ---------- Pipeline ----------
+    $('start').addEventListener('click', async () => {
+      if (!pickedFile) return;
+      $('start').disabled = true;
+      $('resultCard').hidden = true;
+      try {
+        let imageRef = await fileToDataUrl(pickedFile);
+
+        if ($('denoise').checked) {
+          imageRef = await runStep('denoise', { image: imageRef }, '降噪');
+        }
+
+        const anime = $('modeAnime').checked;
+        const upscaleInput = { image: imageRef, scale: 4 };
+        if (!anime && $('faceEnhance').checked) upscaleInput.face_enhance = true;
+
+        const finalUrl = await runStep(anime ? 'anime' : 'standard', upscaleInput, '放大 4x');
+
+        $('resultImg').src = finalUrl;
+        $('downloadBtn').href = finalUrl;
+        $('resultCard').hidden = false;
+        setStatus('完成！');
+      } catch (e) {
+        setStatus('錯誤：' + e.message, true);
+      } finally {
+        $('start').disabled = false;
+      }
+    });
+
+    $('resetBtn').addEventListener('click', () => {
+      pickedFile = null;
+      $('picker').value = '';
+      $('preview').hidden = true;
+      $('preview').src = '';
+      $('pickText').textContent = '點此選擇照片（或拍照）';
+      $('optionsCard').hidden = true;
+      $('resultCard').hidden = true;
+      $('status').hidden = true;
+      window.scrollTo(0, 0);
+    });
+  </script>
+</body>
+</html>
